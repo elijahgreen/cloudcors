@@ -5,6 +5,7 @@ import * as path from 'path';
 import * as CloudWorker from '@dollarshaveclub/cloudworker';
 import { AddressInfo } from 'net';
 import axios from 'axios';
+import { Server } from 'http';
 
 const workerScript = fs.readFileSync(
   path.resolve(__dirname, '../../dist/worker.production.js'),
@@ -24,15 +25,20 @@ describe('handler returns response with request method', () => {
 
 describe('general methods', () => {
   let serverAddress: string;
-  beforeEach(() => {
+  let server: Server;
+  before(() => {
     const worker = new CloudWorker(workerScript);
-    const server = worker.listen();
+    server = worker.listen();
     serverAddress = `http://localhost:${
       (server.address() as AddressInfo).port
     }`;
   });
+
+  after(() => {
+    server.close();
+  });
+
   it('GET /', async () => {
-    const url = `${serverAddress}`;
     const result = await axios.get<string>(serverAddress);
     const text = result.data;
     expect(text).to.include('CLOUDFLARE');
