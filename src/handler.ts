@@ -32,10 +32,26 @@ async function handleAllowedMethods(
   endpointUrl: string,
   request: Request,
 ): Promise<Response> {
-  // Rewrite request to point to endpoint url.
+  const originalUrl = new URL(request.url);
   request = new Request(endpointUrl, request);
   // Make server think that this request isn't cross-site
   request.headers.set('Origin', new URL(endpointUrl).origin);
+
+  // Handle optional query params
+  if (originalUrl.searchParams.has('setRequestHeaders')) {
+    const setRequestHeaders = originalUrl.searchParams.get('setRequestHeaders');
+    try {
+      const requestHeaders = JSON.parse(setRequestHeaders || "{}");
+      for (const [key, value] of Object.entries(requestHeaders))
+      {
+        if (typeof value === "string") {
+          request.headers.set(key, value);
+        }
+      }
+    } catch (e) {
+      console.log(e);
+    }
+  }
 
   let response = await fetch(request);
 
@@ -51,8 +67,8 @@ async function handleAllowedMethods(
 }
 
 export async function handleRequest(request: Request): Promise<Response> {
-  var originUrl = new URL(request.url);
-  var endpointUrl = originUrl.searchParams.get('url');
+  const originUrl = new URL(request.url);
+  const endpointUrl = originUrl.searchParams.get('url');
 
   if (endpointUrl) {
     if (request.method === 'OPTIONS') {
