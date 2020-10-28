@@ -1,0 +1,6 @@
+image: node:latest
+
+build:
+  script:
+    - npm install 
+    - npx wrangler publish
