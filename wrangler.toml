@@ -1,7 +1,4 @@
-name = "my-ts-project"
+name = "cloudcors"
 type = "webpack"
-account_id = ""
 workers_dev = true
-route = ""
-zone_id = ""
 webpack_config = "webpack.config.js"
