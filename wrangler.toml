@@ -2,3 +2,9 @@ name = "cloudcors"
 type = "webpack"
 workers_dev = true
 webpack_config = "webpack.config.js"
+
+[vars]
+ENDPOINT_ALLOWLIST = """
+    [
+    ]
+"""

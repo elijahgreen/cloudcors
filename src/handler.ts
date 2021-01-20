@@ -1,3 +1,4 @@
+declare const ENDPOINT_ALLOWLIST: string;
 const allowedMethods = 'GET, HEAD, POST, OPTIONS';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,7 +15,7 @@ function handleOptions(request: Request): Response {
     request.headers.get('Access-Control-Request-Method') !== null &&
     request.headers.get('Access-Control-Request-Headers') !== null
   ) {
-    // Hnalde CORS pre-flight request
+    // Handle CORS pre-flight request
     return new Response(null, {
       headers: corsHeaders,
     });
@@ -29,13 +30,13 @@ function handleOptions(request: Request): Response {
 }
 
 async function handleAllowedMethods(
-  endpointUrl: string,
+  endpointUrl: URL,
   request: Request,
 ): Promise<Response> {
   const originalUrl = new URL(request.url);
-  request = new Request(endpointUrl, request);
+  request = new Request(endpointUrl.href, request);
   // Make server think that this request isn't cross-site
-  request.headers.set('Origin', new URL(endpointUrl).origin);
+  request.headers.set('Origin', endpointUrl.origin);
 
   // Handle optional query params
   if (originalUrl.searchParams.has('setRequestHeaders')) {
@@ -68,9 +69,20 @@ async function handleAllowedMethods(
 
 export async function handleRequest(request: Request): Promise<Response> {
   const originUrl = new URL(request.url);
-  const endpointUrl = originUrl.searchParams.get('url');
+  const urlParam = originUrl.searchParams.get('url');
 
-  if (endpointUrl) {
+  if (urlParam) {
+    const endpointUrl = new URL(urlParam);
+    if (ENDPOINT_ALLOWLIST)
+    {
+      const allowlist: string[] = JSON.parse(ENDPOINT_ALLOWLIST);
+      if (allowlist.length && !allowlist.includes(endpointUrl.host)) {
+        return new Response(null, {
+          status: 403,
+          statusText: 'Forbidden',
+        });
+      }
+    }
     if (request.method === 'OPTIONS') {
       return handleOptions(request);
     } else if (allowedMethods.split(', ').includes(request.method)) {
