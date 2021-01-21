@@ -6,5 +6,10 @@ webpack_config = "webpack.config.js"
 [vars]
 ENDPOINT_ALLOWLIST = """
     [
+        "www.humblebundle.com",
+        "standardebooks.org",
+        "catalog.feedbooks.com",
+        "m.gutenberg.org",
+        "www.gutenberg.org"
     ]
 """
