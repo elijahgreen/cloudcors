@@ -1,7 +1,6 @@
-name = "cloudcors"
-type = "webpack"
-workers_dev = true
-webpack_config = "webpack.config.js"
+name = "cloudflare-worker-token-service"
+main = "src/index.ts"
+compatibility_date = "2022-06-14"
 
 [vars]
 ENDPOINT_ALLOWLIST = """

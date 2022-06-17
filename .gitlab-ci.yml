@@ -2,7 +2,6 @@ image: node:latest
 
 build:
   script:
-    - npm install 
-    - wget https://github.com/cloudflare/wrangler/releases/download/v1.13.0/wrangler-v1.13.0-x86_64-unknown-linux-musl.tar.gz
-    - tar xvzf wrangler-v1.13.0-x86_64-unknown-linux-musl.tar.gz 
-    - ./dist/wrangler publish
+    - npm install
+    - npm i @cloudflare/wrangler -g
+    - wrangler publish
