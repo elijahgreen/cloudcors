@@ -1,7 +1,0 @@
-image: node:latest
-
-build:
-  script:
-    - npm install
-    - npm i @cloudflare/wrangler -g
-    - wrangler publish
