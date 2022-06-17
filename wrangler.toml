@@ -2,6 +2,9 @@ name = "cloudflare-worker-token-service"
 main = "src/index.ts"
 compatibility_date = "2022-06-14"
 
+[build]
+command = "node build.js"
+
 [vars]
 ENDPOINT_ALLOWLIST = """
     [
