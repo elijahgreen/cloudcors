@@ -12,6 +12,7 @@ ENDPOINT_ALLOWLIST = """
         "standardebooks.org",
         "catalog.feedbooks.com",
         "m.gutenberg.org",
-        "www.gutenberg.org"
+        "www.gutenberg.org",
+        "youtube.com"
     ]
 """

@@ -33,7 +33,7 @@ async function handleAllowedMethods(
   request: Request
 ): Promise<Response> {
   const originalUrl = new URL(request.url);
-  request = new Request(endpointUrl.href, request);
+  request = new Request(endpointUrl.href, { ...request, redirect: "follow" });
   // Make server think that this request isn't cross-site
   request.headers.set("Origin", endpointUrl.origin);
 
