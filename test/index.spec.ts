@@ -10,7 +10,7 @@ describe("handler returns response with request method", () => {
         env
       );
       const text = await result.text();
-      expect(text).toContain("CLOUDFLARE");
+      expect(text).toContain("CLOUDCORS");
     });
   });
 });
@@ -23,13 +23,21 @@ describe("general methods", () => {
       env
     );
     const text = await result.text();
-    expect(text).toContain("CLOUDFLARE");
+    expect(text).toContain("CLOUDCORS");
   });
 
   it("GET /?url=http://example.com", async () => {
     const env = getMiniflareBindings();
     env.ENDPOINT_ALLOWLIST = `["example.com"]`;
     const url = `http://localhost?url=http://example.com`;
+    const result = await worker.fetch(new Request(url, { method: "GET" }), env);
+    expect(result.status).toBe(200);
+  });
+
+  it("GET /http://example.com", async () => {
+    const env = getMiniflareBindings();
+    env.ENDPOINT_ALLOWLIST = `["example.com"]`;
+    const url = `http://localhost/http://example.com`;
     const result = await worker.fetch(new Request(url, { method: "GET" }), env);
     expect(result.status).toBe(200);
   });

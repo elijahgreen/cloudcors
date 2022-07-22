@@ -2,7 +2,8 @@ const allowedMethods = "GET, HEAD, POST, OPTIONS";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": allowedMethods,
-  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Allow-Headers":
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization, user-agent",
   "Access-Control-Max-Age": "86400",
 };
 
@@ -71,9 +72,10 @@ export async function handleRequest(
 ): Promise<Response> {
   const originUrl = new URL(request.url);
   const urlParam = originUrl.searchParams.get("url");
+  const pathUrl = request.url.replace(originUrl.origin, "").substring(1);
 
-  if (urlParam) {
-    const endpointUrl = new URL(urlParam);
+  if (urlParam || pathUrl) {
+    const endpointUrl = urlParam ? new URL(urlParam) : new URL(pathUrl);
     if (env.ENDPOINT_ALLOWLIST) {
       const allowlist: string[] = JSON.parse(env.ENDPOINT_ALLOWLIST);
       if (allowlist.length && !allowlist.includes(endpointUrl.host)) {
@@ -95,7 +97,12 @@ export async function handleRequest(
     }
   } else {
     return new Response(
-      "CLOUDFLARE-CORS-PROXY\n\n" + "Usage:\n" + originUrl.origin + "?url=uri",
+      "CLOUDCORS\n\n" +
+        "Usage:\n" +
+        originUrl.origin +
+        "?url=uri\nor\n" +
+        originUrl.origin +
+        "/uri",
       { status: 200 }
     );
   }

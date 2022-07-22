@@ -13,6 +13,7 @@ ENDPOINT_ALLOWLIST = """
         "catalog.feedbooks.com",
         "m.gutenberg.org",
         "www.gutenberg.org",
-        "youtube.com"
+        "www.soundcloud.com",
+        "api-v2.soundcloud.com"
     ]
 """
