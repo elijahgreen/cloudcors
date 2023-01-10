@@ -73,11 +73,25 @@ export async function handleRequest(
   const originUrl = new URL(request.url);
   const urlParam = originUrl.searchParams.get("url");
   const pathUrl = request.url.replace(originUrl.origin, "").substring(1);
+  let allowlist: string[] = [];
+  let settingsString = "";
+  if (env.ENDPOINT_ALLOWLIST) {
+    allowlist = JSON.parse(env.ENDPOINT_ALLOWLIST);
+    if (allowlist.length) {
+      settingsString += `Allowlist:\n${allowlist.join("\n")}`;
+    }
+  }
 
   if (urlParam || pathUrl) {
-    const endpointUrl = urlParam ? new URL(urlParam) : new URL(pathUrl);
+    let endpointString = urlParam ? urlParam : pathUrl;
+    endpointString =
+      endpointString.indexOf("://") === -1
+        ? `https://${endpointString}`
+        : endpointString;
+
+    const endpointUrl = new URL(endpointString);
+
     if (env.ENDPOINT_ALLOWLIST) {
-      const allowlist: string[] = JSON.parse(env.ENDPOINT_ALLOWLIST);
       if (allowlist.length && !allowlist.includes(endpointUrl.host)) {
         return new Response(null, {
           status: 403,
@@ -102,7 +116,8 @@ export async function handleRequest(
         originUrl.origin +
         "?url=uri\nor\n" +
         originUrl.origin +
-        "/uri",
+        "/uri\n\n" +
+        settingsString,
       { status: 200 }
     );
   }
