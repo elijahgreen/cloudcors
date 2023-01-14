@@ -48,4 +48,20 @@ describe("general methods", () => {
     const result = await worker.fetch(new Request(url, { method: "GET" }), env);
     expect(result.status).toBe(403);
   });
+
+  it("GET /?url=http://example.com not allowed content type", async () => {
+    const env = getMiniflareBindings();
+    env.CONTENT_TYPE_ALLOWLIST = `["application/pdf"]`;
+    const url = `http://localhost?url=http://example.com`;
+    const result = await worker.fetch(new Request(url, { method: "GET" }), env);
+    expect(result.status).toBe(403);
+  });
+
+  it("GET /?url=http://example.com allowed content type", async () => {
+    const env = getMiniflareBindings();
+    env.CONTENT_TYPE_ALLOWLIST = `["text/html"]`;
+    const url = `http://localhost?url=http://example.com`;
+    const result = await worker.fetch(new Request(url, { method: "GET" }), env);
+    expect(result.status).toBe(200);
+  });
 });

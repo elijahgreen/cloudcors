@@ -31,10 +31,12 @@ function handleOptions(request: Request): Response {
 
 async function handleAllowedMethods(
   endpointUrl: URL,
-  request: Request
+  request: Request,
+  allowedContentTypes: string[]
 ): Promise<Response> {
   const originalUrl = new URL(request.url);
   request = new Request(endpointUrl.href, { ...request, redirect: "follow" });
+
   // Make server think that this request isn't cross-site
   request.headers.set("Origin", endpointUrl.origin);
 
@@ -58,6 +60,21 @@ async function handleAllowedMethods(
   // Recreate the response so we can modify the headers
   response = new Response(response.body, response);
 
+  console.log("why");
+  if (allowedContentTypes.length > 0) {
+    const contentType = response.headers.get("Content-Type");
+    console.log(contentType);
+    if (
+      contentType &&
+      !allowedContentTypes.some((a) => contentType.includes(a))
+    ) {
+      return new Response(null, {
+        status: 403,
+        statusText: "Forbidden",
+      });
+    }
+  }
+
   response.headers.set("Access-Control-Allow-Origin", "*");
 
   // Append to/Add Vary header so browser will cache response correctly
@@ -73,12 +90,24 @@ export async function handleRequest(
   const originUrl = new URL(request.url);
   const urlParam = originUrl.searchParams.get("url");
   const pathUrl = request.url.replace(originUrl.origin, "").substring(1);
-  let allowlist: string[] = [];
+  let endpointAllowlist: string[] = [];
+  let contentTypeAllowlist: string[] = [];
   let settingsString = "";
   if (env.ENDPOINT_ALLOWLIST) {
-    allowlist = JSON.parse(env.ENDPOINT_ALLOWLIST);
-    if (allowlist.length) {
-      settingsString += `Allowlist:\n${allowlist.join("\n")}`;
+    endpointAllowlist = JSON.parse(env.ENDPOINT_ALLOWLIST);
+    if (endpointAllowlist.length) {
+      settingsString += `Allowed Endpoints:\n${endpointAllowlist.join(
+        "\n"
+      )}\n\n`;
+    }
+  }
+
+  if (env.CONTENT_TYPE_ALLOWLIST) {
+    contentTypeAllowlist = JSON.parse(env.CONTENT_TYPE_ALLOWLIST);
+    if (contentTypeAllowlist.length) {
+      settingsString += `Allowed Content Types:\n${contentTypeAllowlist.join(
+        "\n"
+      )}\n\n`;
     }
   }
 
@@ -92,17 +121,24 @@ export async function handleRequest(
     const endpointUrl = new URL(endpointString);
 
     if (env.ENDPOINT_ALLOWLIST) {
-      if (allowlist.length && !allowlist.includes(endpointUrl.host)) {
+      if (
+        endpointAllowlist.length &&
+        !endpointAllowlist.includes(endpointUrl.host)
+      ) {
+        console.log(env.ENDPOINT_ALLOWLIST);
         return new Response(null, {
           status: 403,
           statusText: "Forbidden",
         });
       }
     }
+
     if (request.method === "OPTIONS") {
+      console.log("options");
       return handleOptions(request);
     } else if (allowedMethods.split(", ").includes(request.method)) {
-      return handleAllowedMethods(endpointUrl, request);
+      console.log("allowed");
+      return handleAllowedMethods(endpointUrl, request, contentTypeAllowlist);
     } else {
       return new Response(null, {
         status: 405,
