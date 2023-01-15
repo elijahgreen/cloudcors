@@ -60,10 +60,8 @@ async function handleAllowedMethods(
   // Recreate the response so we can modify the headers
   response = new Response(response.body, response);
 
-  console.log("why");
   if (allowedContentTypes.length > 0) {
     const contentType = response.headers.get("Content-Type");
-    console.log(contentType);
     if (
       contentType &&
       !allowedContentTypes.some((a) => contentType.includes(a))
@@ -125,7 +123,6 @@ export async function handleRequest(
         endpointAllowlist.length &&
         !endpointAllowlist.includes(endpointUrl.host)
       ) {
-        console.log(env.ENDPOINT_ALLOWLIST);
         return new Response(null, {
           status: 403,
           statusText: "Forbidden",
@@ -134,10 +131,8 @@ export async function handleRequest(
     }
 
     if (request.method === "OPTIONS") {
-      console.log("options");
       return handleOptions(request);
     } else if (allowedMethods.split(", ").includes(request.method)) {
-      console.log("allowed");
       return handleAllowedMethods(endpointUrl, request, contentTypeAllowlist);
     } else {
       return new Response(null, {
