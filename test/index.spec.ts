@@ -29,6 +29,7 @@ describe("general methods", () => {
   it("GET /?url=http://example.com", async () => {
     const env = getMiniflareBindings();
     env.ENDPOINT_ALLOWLIST = `["example.com"]`;
+    env.CONTENT_TYPE_ALLOWLIST = "";
     const url = `http://localhost?url=http://example.com`;
     const result = await worker.fetch(new Request(url, { method: "GET" }), env);
     expect(result.status).toBe(200);
@@ -37,6 +38,7 @@ describe("general methods", () => {
   it("GET /http://example.com", async () => {
     const env = getMiniflareBindings();
     env.ENDPOINT_ALLOWLIST = `["example.com"]`;
+    env.CONTENT_TYPE_ALLOWLIST = "";
     const url = `http://localhost/http://example.com`;
     const result = await worker.fetch(new Request(url, { method: "GET" }), env);
     expect(result.status).toBe(200);
