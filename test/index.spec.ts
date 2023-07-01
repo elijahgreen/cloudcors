@@ -66,4 +66,12 @@ describe("general methods", () => {
     const result = await worker.fetch(new Request(url, { method: "GET" }), env);
     expect(result.status).toBe(200);
   });
+
+  it("GET /?url=http://example.com/test?query=true allowed path", async () => {
+    const env = getMiniflareBindings();
+    env.PATH_ALLOWLIST = `["\/test$"]`;
+    const url = `http://localhost?url=http://example.com/test?query=true`;
+    const result = await worker.fetch(new Request(url, { method: "GET" }), env);
+    expect(result.status).not.toBe(403);
+  });
 });

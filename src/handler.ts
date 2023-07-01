@@ -90,6 +90,7 @@ export async function handleRequest(
   const pathUrl = request.url.replace(originUrl.origin, "").substring(1);
   let endpointAllowlist: string[] = [];
   let contentTypeAllowlist: string[] = [];
+  let pathAllowlist: string[] = [];
   let settingsString = "";
   if (env.ENDPOINT_ALLOWLIST) {
     endpointAllowlist = JSON.parse(env.ENDPOINT_ALLOWLIST);
@@ -109,6 +110,11 @@ export async function handleRequest(
     }
   }
 
+  if (env.PATH_ALLOWLIST) {
+    pathAllowlist = JSON.parse(env.PATH_ALLOWLIST);
+    settingsString += `Allowed Paths:\n${pathAllowlist.join("\n")}\n\n`;
+  }
+
   if (urlParam || pathUrl) {
     let endpointString = urlParam ? urlParam : pathUrl;
     endpointString =
@@ -117,11 +123,24 @@ export async function handleRequest(
         : endpointString;
 
     const endpointUrl = new URL(endpointString);
+    const path = endpointUrl.pathname;
 
     if (env.ENDPOINT_ALLOWLIST) {
       if (
         endpointAllowlist.length &&
         !endpointAllowlist.includes(endpointUrl.host)
+      ) {
+        return new Response(null, {
+          status: 403,
+          statusText: "Forbidden",
+        });
+      }
+    }
+
+    if (env.PATH_ALLOWLIST) {
+      if (
+        pathAllowlist.length &&
+        !pathAllowlist.some((p) => new RegExp(p).test(path))
       ) {
         return new Response(null, {
           status: 403,
