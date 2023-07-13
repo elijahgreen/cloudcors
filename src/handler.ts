@@ -66,7 +66,7 @@ async function handleAllowedMethods(
       contentType &&
       !allowedContentTypes.some((a) => contentType.includes(a))
     ) {
-      return new Response(null, {
+      return new Response(`Forbidden Content Type: ${contentType}`, {
         status: 403,
         statusText: "Forbidden",
       });
@@ -130,9 +130,9 @@ export async function handleRequest(
         endpointAllowlist.length &&
         !endpointAllowlist.includes(endpointUrl.host)
       ) {
-        return new Response(null, {
+        return new Response(`Forbidden Endpoint: ${endpointUrl.host}`, {
           status: 403,
-          statusText: "Forbidden",
+          statusText: `Forbidden`,
         });
       }
     }
@@ -142,9 +142,9 @@ export async function handleRequest(
         pathAllowlist.length &&
         !pathAllowlist.some((p) => new RegExp(p).test(path))
       ) {
-        return new Response(null, {
+        return new Response(`Forbidden path: ${path}`, {
           status: 403,
-          statusText: "Forbidden",
+          statusText: `Forbidden`,
         });
       }
     }

@@ -49,6 +49,8 @@ describe("general methods", () => {
     const url = `http://localhost?url=https://www.google.com`;
     const result = await worker.fetch(new Request(url, { method: "GET" }), env);
     expect(result.status).toBe(403);
+    const text = await result.text();
+    expect(text).toContain("google");
   });
 
   it("GET /?url=http://example.com not allowed content type", async () => {
@@ -57,6 +59,8 @@ describe("general methods", () => {
     const url = `http://localhost?url=http://example.com`;
     const result = await worker.fetch(new Request(url, { method: "GET" }), env);
     expect(result.status).toBe(403);
+    const text = await result.text();
+    expect(text).toContain("text/html");
   });
 
   it("GET /?url=http://example.com allowed content type", async () => {
@@ -73,5 +77,15 @@ describe("general methods", () => {
     const url = `http://localhost?url=http://example.com/test?query=true`;
     const result = await worker.fetch(new Request(url, { method: "GET" }), env);
     expect(result.status).not.toBe(403);
+  });
+
+  it("GET /?url=http://example.com/failure?query=true allowed path not allowed", async () => {
+    const env = getMiniflareBindings();
+    env.PATH_ALLOWLIST = `["\/test$"]`;
+    const url = `http://localhost?url=http://example.com/failure?query=true`;
+    const result = await worker.fetch(new Request(url, { method: "GET" }), env);
+    expect(result.status).toBe(403);
+    const text = await result.text();
+    expect(text).toContain("failure");
   });
 });
