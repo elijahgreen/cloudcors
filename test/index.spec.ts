@@ -81,11 +81,21 @@ describe("general methods", () => {
 
   it("GET /?url=http://example.com/failure?query=true allowed path not allowed", async () => {
     const env = getMiniflareBindings();
+    env.ENDPOINT_ALLOWLIST = "[]";
     env.PATH_ALLOWLIST = `["\/test$"]`;
     const url = `http://localhost?url=http://example.com/failure?query=true`;
     const result = await worker.fetch(new Request(url, { method: "GET" }), env);
     expect(result.status).toBe(403);
     const text = await result.text();
     expect(text).toContain("failure");
+  });
+
+  it("GET /?url=http://example.com/ignore?query=true allowed endpoint ignores path", async () => {
+    const env = getMiniflareBindings();
+    env.ENDPOINT_ALLOWLIST = `["example.com"]`;
+    env.PATH_ALLOWLIST = `["\/test$"]`;
+    const url = `http://localhost?url=http://example.com/ignore?query=true`;
+    const result = await worker.fetch(new Request(url, { method: "GET" }), env);
+    expect(result.status).not.toBe(403);
   });
 });

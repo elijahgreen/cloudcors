@@ -81,6 +81,14 @@ async function handleAllowedMethods(
   return response;
 }
 
+function isEndpointAllowed(endpoints: string[], url: URL): boolean {
+  return endpoints.includes(url.host);
+}
+
+function isPathAllowed(paths: string[], path: string): boolean {
+  return paths.some((p) => new RegExp(p).test(path));
+}
+
 export async function handleRequest(
   request: Request,
   env: Bindings
@@ -112,7 +120,9 @@ export async function handleRequest(
 
   if (env.PATH_ALLOWLIST) {
     pathAllowlist = JSON.parse(env.PATH_ALLOWLIST);
-    settingsString += `Allowed Paths:\n${pathAllowlist.join("\n")}\n\n`;
+    if (pathAllowlist.length) {
+      settingsString += `Allowed Paths:\n${pathAllowlist.join("\n")}\n\n`;
+    }
   }
 
   if (urlParam || pathUrl) {
@@ -125,28 +135,21 @@ export async function handleRequest(
     const endpointUrl = new URL(endpointString);
     const path = endpointUrl.pathname;
 
-    if (env.ENDPOINT_ALLOWLIST) {
+    if (endpointAllowlist.length) {
       if (
-        endpointAllowlist.length &&
-        !endpointAllowlist.includes(endpointUrl.host)
+        !isEndpointAllowed(endpointAllowlist, endpointUrl) &&
+        !isPathAllowed(pathAllowlist, path)
       ) {
         return new Response(`Forbidden Endpoint: ${endpointUrl.host}`, {
           status: 403,
           statusText: `Forbidden`,
         });
       }
-    }
-
-    if (env.PATH_ALLOWLIST) {
-      if (
-        pathAllowlist.length &&
-        !pathAllowlist.some((p) => new RegExp(p).test(path))
-      ) {
-        return new Response(`Forbidden path: ${path}`, {
-          status: 403,
-          statusText: `Forbidden`,
-        });
-      }
+    } else if (pathAllowlist.length && !isPathAllowed(pathAllowlist, path)) {
+      return new Response(`Forbidden path: ${path}`, {
+        status: 403,
+        statusText: `Forbidden`,
+      });
     }
 
     if (request.method === "OPTIONS") {
