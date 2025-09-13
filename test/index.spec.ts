@@ -98,4 +98,13 @@ describe("general methods", () => {
     const result = await worker.fetch(new Request(url, { method: "GET" }), env);
     expect(result.status).not.toBe(403);
   });
+
+  it("GET /?url=http://example.com/api/v3/list allowed path with prefix", async () => {
+    const env = getMiniflareBindings();
+    env.ENDPOINT_ALLOWLIST = `["example.com"]`;
+    env.PATH_ALLOWLIST = `["^\/api\/v3"]`;
+    const url = `http://localhost?url=http://example.com/api/v3/list`;
+    const result = await worker.fetch(new Request(url, { method: "GET" }), env);
+    expect(result.status).not.toBe(403);
+  });
 });
