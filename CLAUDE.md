@@ -9,17 +9,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Start local development server
 npm start
 
-# Build the worker
-npm run build
-
 # Deploy to Cloudflare Workers
 npm run deploy
 
 # Run all tests
 npm test
-
-# Run a specific test file
-npm test test/index.spec.ts
 ```
 
 ## Architecture
@@ -50,4 +44,4 @@ The proxy implements three allowlist mechanisms configured via environment varia
 
 ### Testing
 
-Tests use Jest with Miniflare to simulate the Cloudflare Workers environment. The build process generates `dist/index.mjs` which is used by the test environment.
+Tests use Vitest with `@cloudflare/vitest-pool-workers` to run inside the actual Workers runtime (workerd). Configuration is in `vitest.config.ts`.

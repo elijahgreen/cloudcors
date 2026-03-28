@@ -1,9 +1,6 @@
 name = "cloudcors"
 main = "src/index.ts"
-compatibility_date = "2022-06-14"
-
-[build]
-command = "node build.js"
+compatibility_date = "2024-12-01"
 
 [vars]
 ENDPOINT_ALLOWLIST = ""

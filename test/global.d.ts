@@ -1,5 +1,5 @@
-declare global {
-  function getMiniflareBindings(): Bindings;
-}
+import "../bindings";
 
-export {};
+declare module "cloudflare:workers" {
+  interface ProvidedEnv extends Bindings {}
+}
