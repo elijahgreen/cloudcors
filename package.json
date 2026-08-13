@@ -10,7 +10,7 @@
   "author": "Elijah Green",
   "license": "MIT",
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.18.5",
+    "@cloudflare/vitest-pool-workers": "^0.21.2",
     "@cloudflare/workers-types": "^5.20260715.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.2",
