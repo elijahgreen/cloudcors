@@ -118,4 +118,86 @@ describe("general methods", () => {
     await waitOnExecutionContext(ctx);
     expect(result.status).not.toBe(403);
   });
+
+  it("GET /?url= with an unparseable url", async () => {
+    const ctx = createExecutionContext();
+    const url = `http://localhost?url=${encodeURIComponent("https://exa mple.com:99999")}`;
+    const result = await worker.fetch(new Request(url, { method: "GET" }), env, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(result.status).toBe(400);
+  });
+
+  it("GET /?url= blocks non-http protocols", async () => {
+    const testEnv = { ...env, ENDPOINT_ALLOWLIST: "", PATH_ALLOWLIST: "" };
+    const ctx = createExecutionContext();
+    const url = `http://localhost?url=${encodeURIComponent("ftp://example.com/x")}`;
+    const result = await worker.fetch(new Request(url, { method: "GET" }), testEnv, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(result.status).toBe(403);
+    expect(await result.text()).toContain("ftp:");
+  });
+});
+
+describe("redirects", () => {
+  const redirectTo = (target: string) =>
+    `http://localhost?url=${encodeURIComponent(
+      `https://httpbin.org/redirect-to?url=${encodeURIComponent(target)}`
+    )}`;
+
+  it("blocks a redirect to a host off the allowlist", async () => {
+    const testEnv = { ...env, ENDPOINT_ALLOWLIST: `["httpbin.org"]`, CONTENT_TYPE_ALLOWLIST: "" };
+    const ctx = createExecutionContext();
+    const result = await worker.fetch(
+      new Request(redirectTo("https://example.com/"), { method: "GET" }),
+      testEnv,
+      ctx
+    );
+    await waitOnExecutionContext(ctx);
+    expect(result.status).toBe(403);
+    expect(await result.text()).toBe("Redirect blocked. Forbidden Endpoint: example.com");
+  });
+
+  it("follows a redirect to an allowed host", async () => {
+    const testEnv = {
+      ...env,
+      ENDPOINT_ALLOWLIST: `["httpbin.org", "example.com"]`,
+      CONTENT_TYPE_ALLOWLIST: "",
+    };
+    const ctx = createExecutionContext();
+    const result = await worker.fetch(
+      new Request(redirectTo("https://example.com/"), { method: "GET" }),
+      testEnv,
+      ctx
+    );
+    await waitOnExecutionContext(ctx);
+    expect(result.status).toBe(200);
+    expect(await result.text()).toContain("Example Domain");
+  });
+});
+
+describe("request headers", () => {
+  const echo = (extra = "") =>
+    `http://localhost?url=${encodeURIComponent("https://httpbin.org/headers")}${extra}`;
+  const testEnv = { ...env, ENDPOINT_ALLOWLIST: `["httpbin.org"]`, CONTENT_TYPE_ALLOWLIST: "" };
+
+  it("sends a default User-Agent", async () => {
+    const ctx = createExecutionContext();
+    const result = await worker.fetch(new Request(echo()), testEnv, ctx);
+    await waitOnExecutionContext(ctx);
+    const body = (await result.json()) as { headers: Record<string, string> };
+    expect(body.headers["User-Agent"]).toBe("cloudcors");
+  });
+
+  it("keeps a User-Agent passed in setRequestHeaders", async () => {
+    const ctx = createExecutionContext();
+    const headers = encodeURIComponent(JSON.stringify({ "User-Agent": "custom" }));
+    const result = await worker.fetch(
+      new Request(echo(`&setRequestHeaders=${headers}`)),
+      testEnv,
+      ctx
+    );
+    await waitOnExecutionContext(ctx);
+    const body = (await result.json()) as { headers: Record<string, string> };
+    expect(body.headers["User-Agent"]).toBe("custom");
+  });
 });

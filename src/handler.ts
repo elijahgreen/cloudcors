@@ -29,13 +29,18 @@ function handleOptions(request: Request): Response {
   }
 }
 
+const redirectStatuses = [301, 302, 303, 307, 308];
+const maxRedirects = 10;
+
 async function handleAllowedMethods(
   endpointUrl: URL,
   request: Request,
-  allowedContentTypes: string[]
+  allowlists: Allowlists
 ): Promise<Response> {
   const originalUrl = new URL(request.url);
-  request = new Request(endpointUrl.href, { ...request, redirect: "follow" });
+  // Redirects are followed by hand so every hop is held to the allowlists;
+  // with "follow" an allowed host could send the proxy anywhere.
+  request = new Request(endpointUrl.href, { ...request, redirect: "manual" });
 
   // Make server think that this request isn't cross-site
   request.headers.set("Origin", endpointUrl.origin);
@@ -55,11 +60,41 @@ async function handleAllowedMethods(
     }
   }
 
+  // A worker subrequest carries no User-Agent, and some sites (4chan's API)
+  // answer that with 429. Not the caller's: a browser-like one sets off bot
+  // checks such as lobste.rs's.
+  if (!request.headers.has("User-Agent")) {
+    request.headers.set("User-Agent", "cloudcors");
+  }
+
   let response = await fetch(request);
+  for (let hop = 0; redirectStatuses.includes(response.status); hop++) {
+    const location = response.headers.get("Location");
+    if (!location) {
+      break;
+    }
+    if (hop === maxRedirects) {
+      return new Response("Too many redirects", {
+        status: 508,
+        statusText: "Loop Detected",
+      });
+    }
+    const nextUrl = new URL(location, request.url);
+    const reason = getForbiddenReason(nextUrl, allowlists);
+    if (reason) {
+      return new Response(`Redirect blocked. ${reason}`, {
+        status: 403,
+        statusText: "Forbidden",
+      });
+    }
+    request = new Request(nextUrl.href, request);
+    response = await fetch(request);
+  }
 
   // Recreate the response so we can modify the headers
   response = new Response(response.body, response);
 
+  const allowedContentTypes = allowlists.contentTypes;
   if (allowedContentTypes.length > 0) {
     const contentType = response.headers.get("Content-Type");
     if (
@@ -87,6 +122,37 @@ function isEndpointAllowed(endpoints: string[], url: URL): boolean {
 
 function isPathAllowed(paths: string[], path: string): boolean {
   return paths.some((p) => new RegExp(p).test(path));
+}
+
+interface Allowlists {
+  endpoints: string[];
+  contentTypes: string[];
+  paths: string[];
+}
+
+/**
+ * Why `endpointUrl` may not be fetched, or undefined when it may. Applied to
+ * the requested url and to every redirect it leads to.
+ */
+function getForbiddenReason(
+  endpointUrl: URL,
+  allowlists: Allowlists
+): string | undefined {
+  if (endpointUrl.protocol !== "http:" && endpointUrl.protocol !== "https:") {
+    return `Forbidden protocol: ${endpointUrl.protocol}`;
+  }
+  const path = endpointUrl.pathname;
+  if (allowlists.endpoints.length) {
+    if (
+      !isEndpointAllowed(allowlists.endpoints, endpointUrl) &&
+      !isPathAllowed(allowlists.paths, path)
+    ) {
+      return `Forbidden Endpoint: ${endpointUrl.host}`;
+    }
+  } else if (allowlists.paths.length && !isPathAllowed(allowlists.paths, path)) {
+    return `Forbidden path: ${path}`;
+  }
+  return undefined;
 }
 
 export async function handleRequest(
@@ -132,21 +198,23 @@ export async function handleRequest(
         ? `https://${endpointString}`
         : endpointString;
 
-    const endpointUrl = new URL(endpointString);
-    const path = endpointUrl.pathname;
-
-    if (endpointAllowlist.length) {
-      if (
-        !isEndpointAllowed(endpointAllowlist, endpointUrl) &&
-        !isPathAllowed(pathAllowlist, path)
-      ) {
-        return new Response(`Forbidden Endpoint: ${endpointUrl.host}`, {
-          status: 403,
-          statusText: `Forbidden`,
-        });
-      }
-    } else if (pathAllowlist.length && !isPathAllowed(pathAllowlist, path)) {
-      return new Response(`Forbidden path: ${path}`, {
+    let endpointUrl: URL;
+    try {
+      endpointUrl = new URL(endpointString);
+    } catch {
+      return new Response("Invalid url", {
+        status: 400,
+        statusText: "Bad Request",
+      });
+    }
+    const allowlists: Allowlists = {
+      endpoints: endpointAllowlist,
+      contentTypes: contentTypeAllowlist,
+      paths: pathAllowlist,
+    };
+    const reason = getForbiddenReason(endpointUrl, allowlists);
+    if (reason) {
+      return new Response(reason, {
         status: 403,
         statusText: `Forbidden`,
       });
@@ -155,7 +223,7 @@ export async function handleRequest(
     if (request.method === "OPTIONS") {
       return handleOptions(request);
     } else if (allowedMethods.split(", ").includes(request.method)) {
-      return handleAllowedMethods(endpointUrl, request, contentTypeAllowlist);
+      return handleAllowedMethods(endpointUrl, request, allowlists);
     } else {
       return new Response(null, {
         status: 405,
